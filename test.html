@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Audio Recorder and Uploader</title>
+</head>
+<body>
+  <h1>Audio Recorder and Uploader</h1>
+  <button id="startRecording">Start Recording</button>
+  <button id="stopRecording" disabled>Stop Recording</button>
+  <button id="uploadAudio" disabled>Upload Audio</button>
+
+  <audio id="audioPlayer" controls></audio>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      let mediaRecorder;
+      let chunks = [];
+
+      const startRecording = async () => {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+        mediaRecorder = new MediaRecorder(stream);
+
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            chunks.push(event.data);
+          }
+        };
+
+        mediaRecorder.onstop = () => {
+          const audioBlob = new Blob(chunks, { type: 'audio/wav' });
+          const audioUrl = URL.createObjectURL(audioBlob);
+          document.getElementById('audioPlayer').src = audioUrl;
+
+          document.getElementById('uploadAudio').disabled = false;
+        };
+
+        mediaRecorder.start();
+        document.getElementById('startRecording').disabled = true;
+        document.getElementById('stopRecording').disabled = false;
+      };
+
+      const stopRecording = () => {
+        mediaRecorder.stop();
+        document.getElementById('startRecording').disabled = false;
+        document.getElementById('stopRecording').disabled = true;
+      };
+	  
+	  function speakText() {
+            // Replace this with the actual API response text
+            var apiResponseText = "Hello, this is the response text from the API.";
+
+            // Create a new SpeechSynthesisUtterance
+            var utterance = new SpeechSynthesisUtterance(apiResponseText);
+
+            // Optionally, you can set additional properties on the utterance
+            // utterance.lang = 'en-US'; // Set the language
+            // utterance.rate = 1.0; // Set the speaking rate (1.0 is the default)
+
+            // Speak the text
+            window.speechSynthesis.speak(utterance);
+			}
+
+      const uploadAudio = () => {
+        const formData = new FormData();
+        formData.append('file', chunks[0], 'recorded_audio.wav');
+
+        fetch('http://localhost:8000/talk', {
+          method: 'POST',
+          body: formData,
+        })
+        .then(response => response.json())
+        .then(data => {
+          console.log('Upload success:', data);
+          speakText(data)
+        })
+        .catch(error => {
+          console.error('Upload error:', error);
+        });
+      };
+
+      document.getElementById('startRecording').addEventListener('click', startRecording);
+      document.getElementById('stopRecording').addEventListener('click', stopRecording);
+      document.getElementById('uploadAudio').addEventListener('click', uploadAudio);
+    });
+  </script>
+</body>
+</html>

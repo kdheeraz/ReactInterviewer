@@ -1,6 +1,10 @@
 from fastapi import FastAPI, UploadFile
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
+import pyttsx3
+engine = pyttsx3.init()
+import uvicorn
+
 
 from dotenv import load_dotenv
 
@@ -12,8 +16,7 @@ import requests
 load_dotenv()
 
 openai.api_key = os.getenv("OPEN_AI_KEY")
-openai.organization = os.getenv("OPEN_AI_ORG")
-elevenlabs_key = os.getenv("ELEVENLABS_KEY")
+
 
 app = FastAPI()
 
@@ -40,12 +43,14 @@ async def root():
 async def post_audio(file: UploadFile):
     user_message = transcribe_audio(file)
     chat_response = get_chat_response(user_message)
-    audio_output = text_to_speech(chat_response)
 
-    def iterfile():
-        yield audio_output
+    return chat_response
+    # audio_output = text_to_speech(chat_response)
 
-    return StreamingResponse(iterfile(), media_type="application/octet-stream")
+    # def iterfile():
+    #     yield audio_output
+
+    # return StreamingResponse(iterfile(), media_type="application/octet-stream")
 
 @app.get("/clear")
 async def clear_history():
@@ -93,7 +98,9 @@ def load_messages():
                 messages.append(item)
     else:
         messages.append(
-            {"role": "system", "content": "You are interviewing the user for a front-end React developer position. Ask short questions that are relevant to a junior level developer. Your name is Greg. The user is Travis. Keep responses under 30 words and be funny sometimes."}
+            {"role": "system", "content": """You are an interviewer conducting a technical interview for a junior developer position. The candidate has demonstrated a basic understanding of React.js concepts. Continue the interview by exploring their knowledge of state management, React Hooks, JSX, React Router, and the virtual DOM. Assess their ability to explain these concepts clearly and provide practical use cases. Encourage the candidate to share any relevant experiences or projects they've worked on using React.
+
+Ask the candidate a series of 5 to 10 questions related to React.js. For each question, evaluate the clarity of their explanations and encourage them to provide examples or scenarios where applicable. Prompt the candidate to continue with the next question after each response."""}
         )
     return messages
 
@@ -106,35 +113,12 @@ def save_messages(user_message, gpt_response):
         json.dump(messages, f)
 
 def text_to_speech(text):
-    voice_id = 'pNInz6obpgDQGcFmaJgB'
-    
-    body = {
-        "text": text,
-        "model_id": "eleven_monolingual_v1",
-        "voice_settings": {
-            "stability": 0,
-            "similarity_boost": 0,
-            "style": 0.5,
-            "use_speaker_boost": True
-        }
-    }
+    engine.say(text)
+    engine.runAndWait()
 
-    headers = {
-        "Content-Type": "application/json",
-        "accept": "audio/mpeg",
-        "xi-api-key": elevenlabs_key
-    }
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)  
 
-    url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
-
-    try:
-        response = requests.post(url, json=body, headers=headers)
-        if response.status_code == 200:
-            return response.content
-        else:
-            print('something went wrong')
-    except Exception as e:
-        print(e)
 
 
 #1. Send in audio, and have it transcribed

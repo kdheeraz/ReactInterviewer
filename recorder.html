@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Audio Recorder and Uploader</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      background-color: #f2f2f2;
+      text-align: center;
+      margin: 50px;
+    }
+
+    h1 {
+      color: #333;
+    }
+
+    button {
+      font-size: 16px;
+      padding: 10px 20px;
+      margin: 10px;
+      cursor: pointer;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+    }
+
+    button:disabled {
+      background-color: #aaa;
+      cursor: not-allowed;
+    }
+
+    #audioPlayer {
+      width: 80%;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Audio Recorder and Uploader</h1>
+  <button id="startRecording">Start Recording</button>
+  <button id="stopRecording" disabled>Stop Recording</button>
+  <button id="uploadAudio" disabled>Upload Audio</button>
+
+  <audio id="audioPlayer" controls></audio>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      let mediaRecorder;
+      let chunks = [];
+
+      const startRecording = async () => {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+        mediaRecorder = new MediaRecorder(stream);
+
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            chunks.push(event.data);
+          }
+        };
+
+        mediaRecorder.onstop = () => {
+          const audioBlob = new Blob(chunks, { type: 'audio/wav' });
+          const audioUrl = URL.createObjectURL(audioBlob);
+          document.getElementById('audioPlayer').src = audioUrl;
+
+          document.getElementById('uploadAudio').disabled = false;
+        };
+
+        mediaRecorder.start();
+        document.getElementById('startRecording').disabled = true;
+        document.getElementById('stopRecording').disabled = false;
+      };
+
+      const stopRecording = () => {
+        mediaRecorder.stop();
+        document.getElementById('startRecording').disabled = false;
+        document.getElementById('stopRecording').disabled = true;
+      };
+
+      function speakText(data) {
+        var apiResponseText = data;
+        var utterance = new SpeechSynthesisUtterance(apiResponseText);
+        window.speechSynthesis.speak(utterance);
+      }
+
+      const uploadAudio = () => {
+	    document.getElementById('uploadAudio').disabled = true;
+        const formData = new FormData();
+        formData.append('file', chunks[0], 'recorded_audio.wav');
+
+        fetch('http://localhost:8000/talk', {
+          method: 'POST',
+          body: formData,
+        })
+        .then(response => response.json())
+        .then(data => {
+          console.log('Upload success:', data);
+          chunks = [];
+		  
+          speakText(data);
+        })
+        .catch(error => {
+          console.error('Upload error:', error);
+        });
+      };
+
+      document.getElementById('startRecording').addEventListener('click', startRecording);
+      document.getElementById('stopRecording').addEventListener('click', stopRecording);
+      document.getElementById('uploadAudio').addEventListener('click', uploadAudio);
+    });
+  </script>
+</body>
+</html>
