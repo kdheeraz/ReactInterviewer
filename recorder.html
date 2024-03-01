@@ -40,9 +40,9 @@
 </head>
 <body>
   <h1>Audio Recorder and Uploader</h1>
-  <button id="startRecording">Start Recording</button>
-  <button id="stopRecording" disabled>Stop Recording</button>
-  <button id="uploadAudio" disabled>Upload Audio</button>
+  <button id="startRecording">Record Answer</button>
+  <button id="stopRecording" disabled>Upload Answer</button>
+  
 
   <audio id="audioPlayer" controls></audio>
 
@@ -67,7 +67,7 @@
           const audioUrl = URL.createObjectURL(audioBlob);
           document.getElementById('audioPlayer').src = audioUrl;
 
-          document.getElementById('uploadAudio').disabled = false;
+          uploadAudio()
         };
 
         mediaRecorder.start();
@@ -88,7 +88,6 @@
       }
 
       const uploadAudio = () => {
-	    document.getElementById('uploadAudio').disabled = true;
         const formData = new FormData();
         formData.append('file', chunks[0], 'recorded_audio.wav');
 
@@ -110,7 +109,7 @@
 
       document.getElementById('startRecording').addEventListener('click', startRecording);
       document.getElementById('stopRecording').addEventListener('click', stopRecording);
-      document.getElementById('uploadAudio').addEventListener('click', uploadAudio);
+      
     });
   </script>
 </body>
